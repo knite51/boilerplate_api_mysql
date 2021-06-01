@@ -1,0 +1,12 @@
+language: node_js
+node_js:
+  - '9'
+cache: npm
+services:
+  - mysql
+before_script:
+  - mysql -u root -e 'CREATE DATABASE IF NOT EXISTS kokopelliV2;'
+  - npm run db:migrate
+script: npm test
+after_success:
+  - coveralls < coverage/lcov.info
