@@ -1,6 +1,6 @@
-## Kokopelli Backend V2 (Javascript)
+## Boilerplate mysql (Javascript)
 
-This is the kokopelli v2 project backend responsible for the REST APIS.
+This is the boilerplate intergated with unit and integration testing for a mysql db setup and docker
 
 ### CONFIGURATION
 
