@@ -2,11 +2,10 @@
  * @author Ayotunde Olubiyo O. <knite51@gmail.com>
  */
 const Sequelize = require('sequelize');
-const { gt, lte, ne, in: opIn, or: opOr, notIn } = Sequelize.Op;
+const { gt, lte, ne, in: opIn, or: opOr, notIn, between, like } = Sequelize.Op;
 
 exports.build_query = (options) => {
   let seek_conditions = {};
-  console.log(options, 'optiong');
 
   const sort_condition = options.sort_by
     ? this.build_sort_order_string(options.sort_by, options.sort_format)
@@ -46,14 +45,14 @@ exports.build_query = (options) => {
     } else if (field_value.includes('!')) {
       condition = this.build_nor_query(field, field_value);
     } else if (field_value.includes('~')) {
-      condition = this.build_range_query(field_value);
+      condition = this.build_range_query(field, field_value);
     } else {
       condition = this.build_or_query(options);
     }
 
     seek_conditions['where'] = { ...condition };
   });
-  console.log(seek_conditions, 'see');
+
   return {
     count,
     fields_to_return,
@@ -113,22 +112,24 @@ exports.build_nor_query = (key, value) => {
   };
 };
 
-exports.build_range_query = (value) => {
-  const values = value.split('-');
+exports.build_range_query = (key, value) => {
+  const values = value.split('-').slice(1);
   return {
-    $gte: values[0] ? Number(values[0]) : Number.MIN_SAFE_INTEGER,
-    $lte: values[1] ? Number(values[1]) : Number.MAX_SAFE_INTEGER,
+    [key]: {
+      [between]: [...values],
+    },
   };
 };
 
 exports.build_wildcard_options = (key_list, value) => {
   const keys = key_list.split(',');
   return {
-    $or: keys.map((key) => ({
-      [key]: {
-        $regex: `${value}`,
-        $options: 'i',
-      },
-    })),
+    where: {
+      [opOr]: keys.map((key) => ({
+        [key]: {
+          [like]: `%${value}%`,
+        },
+      })),
+    },
   };
 };

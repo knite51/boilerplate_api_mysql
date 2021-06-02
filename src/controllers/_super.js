@@ -19,15 +19,19 @@ const db = {};
 
 module.exports = {
   async create(model, body) {
-    const created_data = await model.create(body);
-    return {
-      ...this.jsonize(created_data),
-      _id: await this.get_record_metadata(
-        model,
-        created_data.id,
-        created_data.createdAt
-      ),
-    };
+    try {
+      const created_data = await model.create(body);
+      return {
+        ...this.jsonize(created_data),
+        _id: await this.get_record_metadata(
+          model,
+          created_data.id,
+          created_data.createdAt
+        ),
+      };
+    } catch (e) {
+      console.log(`[AdminController] read_records: ${e.message}`);
+    }
   },
 
   async read(
@@ -52,12 +56,33 @@ module.exports = {
     }
   },
 
-  async count(model, fields_to_return, sort_options, offset, limit) {
+  async update(model, seek_conditions, data_to_set) {
+    try {
+      const foundModelItem = await model.findByPk(seek_conditions);
+      const result = await foundModelItem.update(data_to_set);
+
+      return this.jsonize(result);
+    } catch (e) {
+      console.log(`[AdminController] update_records: ${e.message}`);
+    }
+  },
+
+  async count(
+    model,
+    seek_conditions,
+    fields_to_return,
+    sort_options,
+    offset,
+    limit
+  ) {
     try {
       const count = (
         await model.findAndCountAll({
+          ...seek_conditions,
           ...fields_to_return,
           ...sort_options,
+          offset,
+          limit,
         })
       ).count;
       return this.jsonize({ count });

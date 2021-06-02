@@ -40,21 +40,52 @@ module.exports = {
     }
   },
 
+  async update_records(conditions, data_to_set) {
+    try {
+      const update_record = await SuperController.update(
+        SuperController.read_models().Admins,
+        conditions,
+        data_to_set
+      );
+      return update_record;
+    } catch (e) {
+      console.log(`[AdminController] update_records Error: ${e.message}`);
+    }
+  },
+
+  async delete_records(conditions) {
+    try {
+      const result = await this.model.updateMany(
+        {
+          ...conditions,
+        },
+        {
+          is_deleted: true,
+          $currentDate: { updated_on: true },
+        }
+      );
+
+      return this.jsonize(result);
+    } catch (e) {
+      console.log(`[AdminController] delete_records Error: ${e.message}`);
+    }
+  },
+
   async count_records(
-    offset = 0,
-    limit = Number.MAX_SAFE_INTEGER,
-    // conditions,
+    conditions,
     fields_to_return = '',
-    sort_options = ''
+    sort_options = '',
+    offset = 0,
+    limit = Number.MAX_SAFE_INTEGER
   ) {
     try {
       const read_record = await SuperController.count(
         SuperController.read_models().Admins,
-        offset,
-        limit,
-        // conditions,
+        conditions,
         fields_to_return,
-        sort_options
+        sort_options,
+        offset,
+        limit
       );
       return read_record;
     } catch (e) {

@@ -72,7 +72,7 @@ class RootService {
   }
 
   process_update_result(result) {
-    if (result && result.ok && result.nModified) {
+    if (result) {
       return this.process_successful_response(result);
     }
     if (result && result.ok && !result.nModified)
