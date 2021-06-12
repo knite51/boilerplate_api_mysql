@@ -9,7 +9,8 @@ const AdminValidator = require('../validators/admin');
 const {
   build_query,
   build_wildcard_options,
-  build_many_action_query_,
+  build_many_action_query,
+  build_purge_query,
 } = require('../utilities/query');
 
 class AdminService extends RootService {
@@ -102,6 +103,25 @@ class AdminService extends RootService {
     }
   }
 
+  async read_deleted_data(request, next) {
+    try {
+      const { query } = request;
+      const result = await this.handle_database_read(this.admin_controller, {
+        ...query,
+        ...{
+          is_deleted: true,
+        },
+      });
+      return this.process_multiple_read_results(result);
+    } catch (e) {
+      const err = this.process_failed_response(
+        `[AdminService] read_deleted_data: ${e.message}`,
+        500
+      );
+      next(err);
+    }
+  }
+
   async update_record_by_id(request, next) {
     try {
       const { id } = request.params;
@@ -128,7 +148,7 @@ class AdminService extends RootService {
   async update_many_records(request, next) {
     try {
       const { options, data } = request.body;
-      const { seek_conditions } = build_many_action_query_(
+      const { seek_conditions } = build_many_action_query(
         options,
         this.standard_metadata
       );
@@ -172,7 +192,7 @@ class AdminService extends RootService {
   async delete_many_records(request, next) {
     try {
       const { options } = request.body;
-      const { seek_conditions } = build_many_action_query_(
+      const { seek_conditions } = build_many_action_query(
         options,
         this.standard_metadata
       );
@@ -187,6 +207,29 @@ class AdminService extends RootService {
     } catch (e) {
       const err = this.process_failed_response(
         `[DepartmentService] delete_records: ${e.message}`,
+        500
+      );
+      next(err);
+    }
+  }
+
+  async purge_data(request, next) {
+    try {
+      const { options } = request.body;
+      const { seek_conditions } = build_purge_query(options, {
+        is_deleted: true,
+      });
+
+      const result = await this.admin_controller.purge_records({
+        ...seek_conditions,
+      });
+
+      return this.process_delete_result({
+        number_of_col_deleted: result.toString(),
+      });
+    } catch (e) {
+      const err = this.process_failed_response(
+        `[DepartmentService] purge_data: ${e.message}`,
         500
       );
       next(err);

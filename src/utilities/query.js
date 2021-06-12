@@ -141,7 +141,16 @@ exports.build_wildcard_options = (key_list, value, standard_metadata) => {
   };
 };
 
-exports.build_many_action_query_ = (options, standard_metadata) => {
+exports.build_many_action_query = (options, standard_metadata) => {
+  let { seek_conditions } = this.build_query(options);
+  seek_conditions['where'] = {
+    ...seek_conditions['where'],
+    ...standard_metadata,
+  };
+  return { seek_conditions };
+};
+
+exports.build_purge_query = (options, standard_metadata) => {
   let { seek_conditions } = this.build_query(options);
   seek_conditions['where'] = {
     ...seek_conditions['where'],

@@ -77,20 +77,12 @@ module.exports = {
     }
   },
 
-  async delete(model, seek_conditions, data_to_set, update_type) {
+  async purge(model, seek_conditions) {
     try {
-      let result;
-
-      if (update_type === 'Single') {
-        const foundModelItem = await model.findByPk(seek_conditions);
-        result = await foundModelItem.update(data_to_set);
-      } else {
-        result = await model.update(data_to_set, seek_conditions);
-      }
-
+      const result = await model.destroy(seek_conditions);
       return this.jsonize(result);
     } catch (e) {
-      console.log(`[AdminController] update_records: ${e.message}`);
+      console.log(`[AdminController] purge_records: ${e.message}`);
     }
   },
 

@@ -30,6 +30,10 @@ try {
       );
       next();
     })
+    .get('/purge/data', async (request, response, next) => {
+      request.payload = await admin_service.read_deleted_data(request, next);
+      next();
+    })
     .put('/:id', async (request, response, next) => {
       request.payload = await admin_service.update_record_by_id(request, next);
       next();
@@ -44,6 +48,10 @@ try {
     })
     .delete('/', async (request, response, next) => {
       request.payload = await admin_service.delete_many_records(request, next);
+      next();
+    })
+    .delete('/purge/data', async (request, response, next) => {
+      request.payload = await admin_service.purge_data(request, next);
       next();
     });
 } catch (e) {

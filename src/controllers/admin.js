@@ -68,6 +68,18 @@ module.exports = {
     }
   },
 
+  async purge_records(conditions) {
+    try {
+      const purged_records = await SuperController.purge(
+        SuperController.read_models().Admins,
+        conditions
+      );
+      return purged_records;
+    } catch (e) {
+      console.log(`[AdminController] purge_records Error: ${e.message}`);
+    }
+  },
+
   async count_records(
     conditions,
     fields_to_return = '',
