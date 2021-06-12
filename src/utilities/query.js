@@ -37,7 +37,9 @@ exports.build_query = (options) => {
   delete options.sort_by;
 
   Object.keys(options).forEach((field) => {
-    const field_value = options[field];
+    let field_value = options[field];
+    field_value =
+      typeof field_value === 'boolean' ? field_value.toString() : field_value;
     let condition;
 
     if (field_value.includes(':')) {
@@ -84,6 +86,8 @@ exports.determine_pagination = (page, pageSize) => {
   };
 };
 
+// In query for items in one column comparison
+//localhost:4300/admin?username=lulkma:Ayotuv:barr
 exports.build_in_query = (key, value) => {
   const values = value.split(':');
   return {
@@ -93,6 +97,8 @@ exports.build_in_query = (key, value) => {
   };
 };
 
+// Or query for items in different column comparison (or like and)
+//localhost:4300/admin?username=lulkma&username=Ayotuv&age=3
 exports.build_or_query = (options) => {
   let arrOption = [];
   for (const key in options) {
@@ -121,7 +127,7 @@ exports.build_range_query = (key, value) => {
   };
 };
 
-exports.build_wildcard_options = (key_list, value) => {
+exports.build_wildcard_options = (key_list, value, standard_metadata) => {
   const keys = key_list.split(',');
   return {
     where: {
@@ -130,6 +136,16 @@ exports.build_wildcard_options = (key_list, value) => {
           [like]: `%${value}%`,
         },
       })),
+      ...standard_metadata,
     },
   };
+};
+
+exports.build_many_action_query_ = (options, standard_metadata) => {
+  let { seek_conditions } = this.build_query(options);
+  seek_conditions['where'] = {
+    ...seek_conditions['where'],
+    ...standard_metadata,
+  };
+  return { seek_conditions };
 };

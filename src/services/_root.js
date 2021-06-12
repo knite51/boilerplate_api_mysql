@@ -16,16 +16,6 @@ class RootService {
     };
   }
 
-  delete_record_metadata(record) {
-    let record_to_mutate = { ...record };
-
-    delete record_to_mutate.createdAt;
-    delete record_to_mutate.updatedAt;
-
-    //
-    return { ...record_to_mutate };
-  }
-
   /** Process DB Data */
 
   async handle_database_read(Controller, query_options, extra_options = {}) {
@@ -37,13 +27,12 @@ class RootService {
       offset,
       sort_condition,
     } = build_query(query_options);
-
     if (count == 'true') {
       return {
         count: (
           await Controller.count_records({
-            // ...seek_conditions,
-            // ...extra_options,
+            ...seek_conditions,
+            ...extra_options,
           })
         ).count,
       };
@@ -75,13 +64,11 @@ class RootService {
     if (result) {
       return this.process_successful_response(result);
     }
-    if (result && result.ok && !result.nModified)
-      return this.process_successful_response(result, 210);
     return this.process_failed_response(`Update failed`, 200);
   }
 
   process_delete_result(result) {
-    if (result && result.nModified) {
+    if (result) {
       return this.process_successful_response(result);
     }
     return this.process_failed_response(`Deletion failed.`, 200);

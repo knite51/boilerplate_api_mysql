@@ -12,7 +12,7 @@ const files = glob.sync('*.js', { cwd: basePath });
 
 const SequelizeConnect = require('../models/_config').sequelize;
 
-const { gt, lte, ne, in: opIn } = Sequelize.Op;
+const { gt, lte, ne, in: opIn, or: opOr } = Sequelize.Op;
 /** */
 
 const db = {};
@@ -21,14 +21,16 @@ module.exports = {
   async create(model, body) {
     try {
       const created_data = await model.create(body);
-      return {
-        ...this.jsonize(created_data),
-        _id: await this.get_record_metadata(
-          model,
-          created_data.id,
-          created_data.createdAt
-        ),
-      };
+
+      const _id = await this.get_record_metadata(
+        model,
+        created_data.id,
+        created_data.createdAt
+      );
+
+      const result = { ...this.jsonize(created_data), _id };
+
+      return this.delete_record_metadata(result);
     } catch (e) {
       console.log(`[AdminController] read_records: ${e.message}`);
     }
@@ -50,16 +52,41 @@ module.exports = {
         offset,
         limit,
       });
-      return this.jsonize([...result]);
+      return this.jsonize(this.delete_record_metadata(result));
     } catch (e) {
       console.log(`[AdminController] read_records: ${e.message}`);
     }
   },
 
-  async update(model, seek_conditions, data_to_set) {
+  async update(model, seek_conditions, data_to_set, update_type) {
     try {
-      const foundModelItem = await model.findByPk(seek_conditions);
-      const result = await foundModelItem.update(data_to_set);
+      let result;
+
+      if (update_type === 'Single') {
+        const foundModelItem = await model.findByPk(seek_conditions);
+        result = await foundModelItem.update(data_to_set);
+      } else {
+        result = await model.update(data_to_set, seek_conditions);
+      }
+
+      return update_type === 'Single'
+        ? this.jsonize(this.delete_record_metadata(result))
+        : this.jsonize(result);
+    } catch (e) {
+      console.log(`[AdminController] update_records: ${e.message}`);
+    }
+  },
+
+  async delete(model, seek_conditions, data_to_set, update_type) {
+    try {
+      let result;
+
+      if (update_type === 'Single') {
+        const foundModelItem = await model.findByPk(seek_conditions);
+        result = await foundModelItem.update(data_to_set);
+      } else {
+        result = await model.update(data_to_set, seek_conditions);
+      }
 
       return this.jsonize(result);
     } catch (e) {
@@ -109,6 +136,27 @@ module.exports = {
     const foundModel = await model.findByPk(id);
     await foundModel.update({ _id: n });
     return n;
+  },
+
+  delete_record_metadata(records) {
+    if (records.dataValues || Array.isArray(records)) {
+      if (Array.isArray(records)) {
+        records.forEach((record) => {
+          delete record.dataValues.createdAt;
+          delete record.dataValues.updatedAt;
+          delete record.dataValues.is_deleted;
+        });
+      } else {
+        delete records.dataValues.createdAt;
+        delete records.dataValues.updatedAt;
+        delete records.dataValues.is_deleted;
+      }
+    } else {
+      delete records.createdAt;
+      delete records.updatedAt;
+      delete records.is_deleted;
+    }
+    return records;
   },
 
   read_models() {

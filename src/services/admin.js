@@ -6,7 +6,11 @@ const RootService = require('./_root');
 const AdminController = require('../controllers/admin');
 const AdminValidator = require('../validators/admin');
 
-const { build_query, build_wildcard_options } = require('../utilities/query');
+const {
+  build_query,
+  build_wildcard_options,
+  build_many_action_query_,
+} = require('../utilities/query');
 
 class AdminService extends RootService {
   constructor(admin_controller, admin_validator) {
@@ -41,8 +45,7 @@ class AdminService extends RootService {
       if (!id)
         return next(this.process_failed_response(`Invalid ID supplied.`));
       const result = await this.admin_controller.read_records({
-        where: { id },
-        // ...this.standard_metadata,
+        where: { id, ...this.standard_metadata },
       });
       return this.process_single_read(result[0]);
     } catch (e) {
@@ -57,11 +60,10 @@ class AdminService extends RootService {
   async read_records_by_filter(request, next) {
     try {
       const { query } = request;
-      const result = await this.handle_database_read(
-        this.admin_controller,
-        query
-        // { ...this.standard_metadata, ...this.exempted_data }
-      );
+      const result = await this.handle_database_read(this.admin_controller, {
+        ...query,
+        ...this.standard_metadata,
+      });
       return this.process_multiple_read_results(result);
     } catch (e) {
       const err = this.process_failed_response(
@@ -81,16 +83,14 @@ class AdminService extends RootService {
 
       const wildcard_conditions = build_wildcard_options(
         params.keys,
-        params.keyword
+        params.keyword,
+        this.standard_metadata
       );
 
-      const result = await this.handle_database_read(
+      let result = await this.handle_database_read(
         this.admin_controller,
         query,
-        {
-          ...wildcard_conditions,
-          // ...this.standard_metadata,
-        }
+        wildcard_conditions
       );
       return this.process_multiple_read_results(result);
     } catch (e) {
@@ -110,7 +110,11 @@ class AdminService extends RootService {
       if ((await this.read_record_by_id(request)).success == false)
         return next(this.process_failed_response(`Invalid ID supplied.`));
 
-      const result = await this.admin_controller.update_records(id, data);
+      const result = await this.admin_controller.update_records(
+        id,
+        data,
+        'Single'
+      );
       return this.process_update_result({ ...result, id });
     } catch (e) {
       const err = this.process_failed_response(
@@ -121,72 +125,73 @@ class AdminService extends RootService {
     }
   }
 
-  // async update_records(request, next) {
-  //   try {
-  //     const { options, data } = request.body;
-  //     const { seek_conditions } = build_query(options);
+  async update_many_records(request, next) {
+    try {
+      const { options, data } = request.body;
+      const { seek_conditions } = build_many_action_query_(
+        options,
+        this.standard_metadata
+      );
 
-  //     const result = await this.admin_controller.update_records(
-  //       { ...seek_conditions },
-  //       { ...data }
-  //     );
-  //     return this.process_update_result({
-  //       ...data,
-  //       ...result,
-  //       options: seek_conditions,
-  //     });
-  //   } catch (e) {
-  //     const err = this.process_failed_response(
-  //       `[DepartmentService] update_records: ${e.message}`,
-  //       500
-  //     );
-  //     next(err);
-  //   }
-  // }
+      const result = await this.admin_controller.update_records(
+        seek_conditions,
+        data,
+        'Multiple'
+      );
+      return this.process_update_result({
+        number_of_col_updated: result.toString(),
+        ...data,
+      });
+    } catch (e) {
+      const err = this.process_failed_response(
+        `[AdminService] update_many_records: ${e.message}`,
+        500
+      );
+      next(err);
+    }
+  }
 
-  // async delete_record_by_id(request, next) {
-  //   try {
-  //     const { id } = request.params;
-  //     if (!id)
-  //       return next(this.process_failed_response(`Invalid ID supplied.`));
-  //     let departmentID = await this.admin_controller.read_records(
-  //       { id: id },
-  //       '_id'
-  //     );
+  async delete_record_by_id(request, next) {
+    try {
+      const { id } = request.params;
+      if ((await this.read_record_by_id(request)).success == false)
+        return next(this.process_failed_response(`Invalid ID supplied.`));
 
-  //     const result = await this.admin_controller.delete_records({ id });
+      const result = await this.admin_controller.delete_records(id, 'Single');
 
-  //     let updateResult = await UpdateRecords.update_models(departmentID[0]._id);
-  //     return this.process_delete_result({ ...result, id });
-  //   } catch (e) {
-  //     const err = this.process_failed_response(
-  //       `[DepartmentService] delete_record_by_id: ${e.message}`,
-  //       500
-  //     );
-  //     next(err);
-  //   }
-  // }
+      return this.process_delete_result(result ? 'Deleted' : null);
+    } catch (e) {
+      const err = this.process_failed_response(
+        `[DepartmentService] delete_record_by_id: ${e.message}`,
+        500
+      );
+      next(err);
+    }
+  }
 
-  // async delete_records(request, next) {
-  //   try {
-  //     const { options } = request.body;
-  //     const { seek_conditions } = build_query(options);
+  async delete_many_records(request, next) {
+    try {
+      const { options } = request.body;
+      const { seek_conditions } = build_many_action_query_(
+        options,
+        this.standard_metadata
+      );
 
-  //     const result = await this.admin_controller.delete_records({
-  //       ...seek_conditions,
-  //     });
-  //     return this.process_delete_result({
-  //       ...result,
-  //       options: seek_conditions,
-  //     });
-  //   } catch (e) {
-  //     const err = this.process_failed_response(
-  //       `[DepartmentService] delete_records: ${e.message}`,
-  //       500
-  //     );
-  //     next(err);
-  //   }
-  // }
+      const result = await this.admin_controller.delete_records({
+        ...seek_conditions,
+      });
+
+      return this.process_delete_result({
+        number_of_col_deleted: result.toString(),
+      });
+    } catch (e) {
+      const err = this.process_failed_response(
+        `[DepartmentService] delete_records: ${e.message}`,
+        500
+      );
+      next(err);
+    }
+  }
 }
 
 module.exports = new AdminService(AdminController, AdminValidator);

@@ -33,22 +33,19 @@ try {
     .put('/:id', async (request, response, next) => {
       request.payload = await admin_service.update_record_by_id(request, next);
       next();
+    })
+    .put('/', async (request, response, next) => {
+      request.payload = await admin_service.update_many_records(request, next);
+      next();
+    })
+    .delete('/:id', async (request, response, next) => {
+      request.payload = await admin_service.delete_record_by_id(request, next);
+      next();
+    })
+    .delete('/', async (request, response, next) => {
+      request.payload = await admin_service.delete_many_records(request, next);
+      next();
     });
-  // .put('/', async (request, response, next) => {
-  //   request.payload = await department_service.update_records(request, next);
-  //   next();
-  // })
-  // .delete('/:id', async (request, response, next) => {
-  //   request.payload = await department_service.delete_record_by_id(
-  //     request,
-  //     next
-  //   );
-  //   next();
-  // })
-  // .delete('/', async (request, response, next) => {
-  //   request.payload = await department_service.delete_records(request, next);
-  //   next();
-  // });
 } catch (e) {
   console.log(`[Route Error] /admin: ${e.message}`);
 } finally {

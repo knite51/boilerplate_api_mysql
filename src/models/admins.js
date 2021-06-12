@@ -22,6 +22,7 @@ module.exports = (sequelize, DataTypes) => {
         allowNull: false,
       },
       password: { type: DataTypes.STRING(190), allowNull: false },
+      is_deleted: { type: DataTypes.BOOLEAN, defaultValue: false },
     },
     {
       hooks: {

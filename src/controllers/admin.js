@@ -40,12 +40,13 @@ module.exports = {
     }
   },
 
-  async update_records(conditions, data_to_set) {
+  async update_records(conditions, data_to_set, update_type) {
     try {
       const update_record = await SuperController.update(
         SuperController.read_models().Admins,
         conditions,
-        data_to_set
+        data_to_set,
+        update_type
       );
       return update_record;
     } catch (e) {
@@ -53,19 +54,15 @@ module.exports = {
     }
   },
 
-  async delete_records(conditions) {
+  async delete_records(conditions, update_type) {
     try {
-      const result = await this.model.updateMany(
-        {
-          ...conditions,
-        },
-        {
-          is_deleted: true,
-          $currentDate: { updated_on: true },
-        }
+      const update_record = await SuperController.update(
+        SuperController.read_models().Admins,
+        conditions,
+        { is_deleted: true },
+        update_type
       );
-
-      return this.jsonize(result);
+      return update_record;
     } catch (e) {
       console.log(`[AdminController] delete_records Error: ${e.message}`);
     }
